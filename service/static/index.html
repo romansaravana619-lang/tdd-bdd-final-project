@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Product Catalog Administration</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>body{font-family:Arial,sans-serif;max-width:900px;margin:30px auto;padding:20px}label{display:block;margin-top:10px}input,select,button{padding:8px;margin:4px}#flash_message{margin:15px 0;font-weight:bold}#search_results{margin-top:20px}</style>
+</head>
+<body>
+<h1>Product Catalog Administration</h1>
+<div id="flash_message"></div>
+<label>Name <input id="product_name"></label>
+<label>Description <input id="product_description"></label>
+<label>Id <input id="product_id"></label>
+<label>Price <input id="product_price"></label>
+<label>Available <select id="product_available"><option>True</option><option>False</option></select></label>
+<label>Category <select id="product_category"><option>Unknown</option><option>Cloths</option><option>Food</option><option>Housewares</option><option>Automotive</option><option>Tools</option></select></label>
+<div>
+<button id="create-btn">Create</button><button id="retrieve-btn">Retrieve</button><button id="update-btn">Update</button><button id="delete-btn">Delete</button><button id="search-btn">Search</button><button id="clear-btn">Clear</button>
+</div>
+<pre id="search_results"></pre>
+<script>
+const api='/products';
+const $=id=>document.getElementById(id);
+function payload(){return {name:$('product_name').value,description:$('product_description').value,price:$('product_price').value,available:$('product_available').value==='True',category:$('product_category').value.toUpperCase()};}
+function show(message){$('flash_message').textContent=message;}
+function clearForm(){['product_id','product_name','product_description','product_price'].forEach(id=>$(id).value='');$('product_available').value='True';$('product_category').value='Unknown';$('search_results').textContent='';}
+async function request(url,opts={}){const r=await fetch(url,opts);let d=null;try{d=await r.json()}catch(e){};if(!r.ok)throw new Error(d?.message||'Request failed');return d;}
+$('create-btn').onclick=async()=>{try{const d=await request(api,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload())});$('product_id').value=d.id;show('Success')}catch(e){show(e.message)}};
+$('retrieve-btn').onclick=async()=>{try{const d=await request(api+'/'+$('product_id').value);fill(d);show('Success')}catch(e){show(e.message)}};
+$('update-btn').onclick=async()=>{try{const d=await request(api+'/'+$('product_id').value,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload())});fill(d);show('Success')}catch(e){show(e.message)}};
+$('delete-btn').onclick=async()=>{try{await request(api+'/'+$('product_id').value,{method:'DELETE'});show('Product has been Deleted!')}catch(e){show(e.message)}};
+$('search-btn').onclick=async()=>{try{let q='';if($('product_name').value)q='?name='+encodeURIComponent($('product_name').value);else if($('product_category').value!=='Unknown')q='?category='+$('product_category').value.toUpperCase();else q='?available='+$('product_available').value.toLowerCase();const d=await request(api+q);$('search_results').textContent=d.map(p=>`${p.id} ${p.name} ${p.description}`).join('\n');if(d[0])fill(d[0]);show('Success')}catch(e){show(e.message)}};
+$('clear-btn').onclick=clearForm;
+function fill(p){$('product_id').value=p.id;$('product_name').value=p.name;$('product_description').value=p.description;$('product_price').value=p.price;$('product_available').value=p.available?'True':'False';$('product_category').value=p.category.charAt(0)+p.category.slice(1).toLowerCase();}
+</script>
+</body></html>
